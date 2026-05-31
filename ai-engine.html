@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h3>AI Analysis Workbench</h3>
+    <input type="file" id="fileInput">
+    <button onclick="processData()">Analyze Records Data</button>
+    <div id="results"></div>
+
+    <script>
+        async function processData() {
+            const file = document.getElementById('fileInput').files[0];
+            const text = await file.text();
+            const data = JSON.parse(text);
+
+            for (const record of data) {
+                // Send to Ollama
+                const response = await fetch('http://localhost:11434/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: "llama3",
+                        prompt: "Analyze this: " + JSON.stringify(record.payload),
+                        stream: false
+                    })
+                });
+                const result = await response.json();
+                console.log("Deduction for " + record.id + ":", result.response);
+                // Display results here
+            }
+        }
+    </script>
+</body>
+</html>

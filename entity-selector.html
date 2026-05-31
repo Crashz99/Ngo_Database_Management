@@ -1,0 +1,470 @@
+<head>
+    <meta charset="UTF-8">
+    <title>Entity Selector</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Shared Unified Layout Rules */
+        .selector-section { padding: 25px 0; }
+        .layout-grid { display: flex; gap: 35px; max-width: 1600px; margin: 0 auto; padding: 0 20px; }
+        .panel-split { flex: 1; }
+        .scroll-directory { max-height: 380px; overflow-y: auto; border: 3px solid var(--border-bold); border-radius: 6px; background: #151210; padding: 15px; }
+        .edit-row { background: var(--panel-item); border: 2px solid var(--border-bold); padding: 15px; border-radius: 8px; margin-bottom: 12px; }
+        .edit-controls { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+        .edit-controls input, .edit-controls select { width: auto; flex: 1; padding: 10px; }
+        
+        .btn-inline-save { background: var(--success); border-color: #2e4d32; padding: 10px 16px; color: white; cursor: pointer; border-radius: 4px; }
+        .btn-inline-save:hover { background: #4e7d54; }
+        .btn-inline-del { background: var(--danger); border-color: #731f20; padding: 10px 16px; color: white; cursor: pointer; border-radius: 4px; }
+        .btn-inline-del:hover { background: #ba3c3d; }
+
+        /* Hard Core Visual Section Separator */
+        .section-divider {
+            border: none;
+            height: 6px;
+            background: linear-gradient(90deg, transparent, #3a3530 15%, #5a524c 50%, #3a3530 85%, transparent);
+            margin: 50px 0;
+            position: relative;
+        }
+        .section-divider::after {
+            content: "Group B Details";
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-dark, #0b0d10);
+            padding: 4px 20px;
+            font-size: 11px;
+            font-weight: 900;
+            color: #7a6e65;
+            letter-spacing: 3px;
+            border: 2px solid #3a3530;
+            border-radius: 20px;
+        }
+
+        /* Active Theme Adjustments for Secondary Group (Steel Variant) */
+        .panel-secondary h2 { border-bottom-color: #3d444a !important; }
+        .panel-secondary .glass-card { border-color: #3d444a !important; }
+        .panel-secondary button:not(.btn-inline-save):not(.btn-inline-del) {
+            background: #4a545e;
+            border-color: #3d444a;
+        }
+        .panel-secondary button:not(.btn-inline-save):not(.btn-inline-del):hover {
+            background: #5c6875;
+            border-color: #6c7b8a;
+        }
+    </style>
+</head>
+<body>
+
+<div style="padding: 30px; box-sizing: border-box;">
+    
+    <div class="header-bar" style="max-width: 1600px; margin: 0 auto 35px auto; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; gap: 20px; align-items: center;">
+            <button onclick="window.location.href='gateway.html'" style="background: transparent; border: 2px solid #343e4c; color: #8a99ad; padding: 10px 18px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.borderColor='#ffaa00'; this.style.color='#ffffff';" onmouseout="this.style.borderColor='#343e4c'; this.style.color='#8a99ad';">
+                &larr; Back to Gateway
+            </button>
+            <div>
+                <h2 style="margin:0; border:none; padding:0; font-size: 24px;">Entity Selector</h2>
+                <span style="font-size: 13px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Select Group A and Group B</span>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 20px; align-items: center;">
+            <select id="roleSwitcher" style="width: auto; padding: 12px 20px; font-weight: 700; background: #12161c; color: #fff; border: 1px solid #343e4c; border-radius: 6px;">
+                <option value="user">User View</option>
+                <option value="admin">Admin View </option>
+            </select>
+            <button onclick="recordSelectionsAndProceed()" style="padding: 12px 24px; font-weight: 700; background: #ffaa00; color: #000; border: none; border-radius: 6px; cursor: pointer;">Proceed to Forms &rarr;</button>
+        </div>
+    </div>
+
+    <div class="selector-section">
+        <div class="layout-grid">
+            <div class="panel-split m1-admin" style="display: none;">
+                <div style="display: flex; flex-direction: column; gap: 35px;">
+                    <div class="glass-card">
+                        <h3>Create Primary Group Node</h3>
+                        <form id="m1-adminForm">
+                            <div class="form-group">
+                                <label>Node Name</label>
+                                <input type="text" id="m1-unitName" placeholder="Enter custom label descriptor..." required>
+                            </div>
+                            <div class="form-group">
+                                <label>Target Hierarchy Level</label>
+                                <select id="m1-unitLevel">
+                                    <option value="1">Tier 1</option>
+                                    <option value="2">Tier 2</option>
+                                    <option value="3">Tier 3</option>
+                                    <option value="4">Tier 4</option>
+                                    <option value="5">Tier 5</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="m1-parentGroup" style="display: none;">
+                                <label>Assign Parent Node</label>
+                                <select id="m1-unitParent"></select>
+                            </div>
+                            <button type="submit" style="width: 100%;">Insert Component Node</button>
+                        </form>
+                    </div>
+                    <div class="glass-card">
+                        <h3>Modify & Manage Primary Group</h3>
+                        <div class="scroll-directory" id="m1-editDirectory"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-split">
+                <div class="glass-card">
+                    <h2>Group A (Primary)</h2>
+                    <p style="color: var(--text-muted); font-size:13px; margin-top:-5px; margin-bottom:20px; font-weight:600;">Enter Details</p>
+                    <div class="form-group"><label>Region</label><select id="m1-tier1"><option value="">-- Select Tier 1 --</option></select></div>
+                    <div class="form-group"><label>Country Office</label><select id="m1-tier2" disabled><option value="">-- Select Tier 2 --</option></select></div>
+                    <div class="form-group"><label>Field Zone</label><select id="m1-tier3" disabled><option value="">-- Select Tier 3 --</option></select></div>
+                    <div class="form-group"><label>District</label><select id="m1-tier4" disabled><option value="">-- Select Tier 4 --</option></select></div>
+                    <div class="form-group"><label>Field Unit</label><select id="m1-tier5" disabled><option value="">-- Select Tier 5 --</option></select></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <div class="selector-section panel-secondary">
+        <div class="layout-grid">
+            <div class="panel-split m2-admin" style="display: none;">
+                <div style="display: flex; flex-direction: column; gap: 35px;">
+                    <div class="glass-card">
+                        <h3>Create Secondary Group Node</h3>
+                        <form id="m2-adminForm">
+                            <div class="form-group">
+                                <label>Node Name</label>
+                                <input type="text" id="m2-unitName" placeholder="Enter custom label descriptor..." required>
+                            </div>
+                            <div class="form-group">
+                                <label>Target Hierarchy Level</label>
+                                <select id="m2-unitLevel">
+                                    <option value="1">Tier 1</option>
+                                    <option value="2">Tier 2</option>
+                                    <option value="3">Tier 3</option>
+                                    <option value="4">Tier 4</option>
+                                    <option value="5">Tier 5</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="m2-parentGroup" style="display: none;">
+                                <label>Assign Parent Node</label>
+                                <select id="m2-unitParent"></select>
+                            </div>
+                            <button type="submit" style="width: 100%;">Insert Component Node</button>
+                        </form>
+                    </div>
+                    <div class="glass-card">
+                        <h3>Modify & Manage Secondary Group</h3>
+                        <div class="scroll-directory" id="m2-editDirectory"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-split">
+                <div class="glass-card">
+                    <h2>Group B (Secondary)</h2>
+                    <p style="color: #8a95a0; font-size:13px; margin-top:-5px; margin-bottom:20px; font-weight:600;">Enter Details</p>
+                    <div class="form-group"><label>Region</label><select id="m2-tier1"><option value="">-- Select Tier 1 --</option></select></div>
+                    <div class="form-group"><label>Country Office</label><select id="m2-tier2" disabled><option value="">-- Select Tier 2 --</option></select></div>
+                    <div class="form-group"><label>Field Zone</label><select id="m2-tier3" disabled><option value="">-- Select Tier 3 --</option></select></div>
+                    <div class="form-group"><label>District</label><select id="m2-tier4" disabled><option value="">-- Select Tier 4 --</option></select></div>
+                    <div class="form-group"><label>Field Unit</label><select id="m2-tier5" disabled><option value="">-- Select Tier 5 --</option></select></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // =======================================================
+    // SECURITY CONFIGURATION & GATEKEEPER SIGNATURE VERIFIER
+    // =======================================================
+    const SYSTEM_PROTOCOL_HASH = "790f48e3ba51e2d0762e7d4a74d4076a62cfb34d44e3dfbc43798fe9ff399602"; // "AdminPass123"
+    let isOrbatAuthorized = false;
+
+    async function computeSystemHash(string) {
+        const msgUint8 = new TextEncoder().encode(string);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function verifyOrbatWriteAccess() {
+        if (isOrbatAuthorized) return true;
+
+        const accessKeyInput = prompt("ENTER MANDATORY AUTHORIZATION KEY FOR ADMINISTRATIVE PRIVILEGES:");
+        if (!accessKeyInput) return false;
+
+        const hashedAttempt = await computeSystemHash(accessKeyInput);
+        if (hashedAttempt === SYSTEM_PROTOCOL_HASH) {
+            isOrbatAuthorized = true;
+            return true;
+        } else {
+            alert("ACCESS DENIED: INVALID AUTHORIZATION SIGNATURE REGISTERED.");
+            return false;
+        }
+    }
+
+    // ==========================================
+    // INITIALIZATION & DISK SECTOR STORAGE PIPES
+    // ==========================================
+    let db1 = JSON.parse(localStorage.getItem('secure_db_1')) || [
+        { id: "m1-t1", name: "Group Alpha Baseline", level: 1, parentId: null },
+        { id: "m1-t2", name: "Group Alpha Node", level: 2, parentId: "m1-t1" }
+    ];
+
+    let db2 = JSON.parse(localStorage.getItem('secure_db_2')) || [
+        { id: "m2-t1", name: "Group Beta Baseline", level: 1, parentId: null },
+        { id: "m2-t2", name: "Group Beta Node", level: 2, parentId: "m2-t1" }
+    ];
+
+    function saveM1() { localStorage.setItem('secure_db_1', JSON.stringify(db1)); }
+    function saveM2() { localStorage.setItem('secure_db_2', JSON.stringify(db2)); }
+
+    // =======================================================
+    // COMPULSORY VALIDATION AND DEPLOYMENT RECORD ENGINE HOOK
+    // =======================================================
+    function recordSelectionsAndProceed() {
+        const matrix1Selection = {
+            tier1: document.getElementById('m1-tier1').value,
+            tier2: document.getElementById('m1-tier2').value,
+            tier3: document.getElementById('m1-tier3').value,
+            tier4: document.getElementById('m1-tier4').value,
+            tier5: document.getElementById('m1-tier5').value
+        };
+
+        const matrix2Selection = {
+            tier1: document.getElementById('m2-tier1').value,
+            tier2: document.getElementById('m2-tier2').value,
+            tier3: document.getElementById('m2-tier3').value,
+            tier4: document.getElementById('m2-tier4').value,
+            tier5: document.getElementById('m2-tier5').value
+        };
+
+        // Soft warning — allow proceeding with partial selections
+        const m1Incomplete = Object.values(matrix1Selection).some(v => !v || v === "" || v.toLowerCase().includes("select"));
+        const m2Incomplete = Object.values(matrix2Selection).some(v => !v || v === "" || v.toLowerCase().includes("select"));
+        if (m1Incomplete || m2Incomplete) {
+            const proceed = confirm("Warning: Not all group levels are selected. You can still proceed, but some fields will be marked as Unassigned. Continue?");
+            if (!proceed) return;
+        }
+
+        const completeOrbatState = {
+            matrix1: matrix1Selection,
+            matrix2: matrix2Selection
+        };
+
+        sessionStorage.setItem('temp_active_selection', JSON.stringify(completeOrbatState));
+        window.location.href = 'selection.html';
+    }
+
+    // ==========================================
+    // UI SWITCHES & VIEWSTATE ROUTING
+    // ==========================================
+    const roleSwitcher = document.getElementById('roleSwitcher');
+    roleSwitcher.addEventListener('change', async () => {
+        if (roleSwitcher.value === 'admin') {
+            const authenticated = await verifyOrbatWriteAccess();
+            if (!authenticated) {
+                roleSwitcher.value = 'user'; // Roll back selection drop automatically
+                return;
+            }
+        }
+
+        const adminState = roleSwitcher.value === 'admin' ? 'block' : 'none';
+        document.querySelectorAll('.m1-admin, .m2-admin').forEach(p => p.style.display = adminState);
+        if (roleSwitcher.value === 'admin') { renderEngine(1); renderEngine(2); }
+    });
+
+    // ==========================================
+    // ABSTRACT WRAPPER INSTANCE LOGIC FOR ENGINE
+    // ==========================================
+    function setupMatrixEngine(matrixId, saveCallback) {
+        const prefix = 'm' + matrixId + '-';
+        const uLevel = document.getElementById(prefix + 'unitLevel');
+        const pGroup = document.getElementById(prefix + 'parentGroup');
+        const uParent = document.getElementById(prefix + 'unitParent');
+        const uName = document.getElementById(prefix + 'unitName');
+        const adminForm = document.getElementById(prefix + 'adminForm');
+        
+        const dropdowns = {
+            1: document.getElementById(prefix + 'tier1'), 2: document.getElementById(prefix + 'tier2'),
+            3: document.getElementById(prefix + 'tier3'), 4: document.getElementById(prefix + 'tier4'),
+            5: document.getElementById(prefix + 'tier5')
+        };
+
+        uLevel.addEventListener('change', () => {
+            const dataRef = matrixId === 1 ? db1 : db2;
+            const lvl = parseInt(uLevel.value);
+            if (lvl === 1) { pGroup.style.display = 'none'; } 
+            else {
+                pGroup.style.display = 'block';
+                uParent.innerHTML = dataRef.filter(u => u.level === (lvl - 1))
+                    .map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+                if(!uParent.innerHTML) uParent.innerHTML = '<option value="">[Configure layer above first]</option>';
+            }
+        });
+
+        adminForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const authorized = await verifyOrbatWriteAccess();
+            if (!authorized) return;
+
+            const dataRef = matrixId === 1 ? db1 : db2;
+            const lvl = parseInt(uLevel.value);
+            if (lvl > 1 && !uParent.value) return alert("Halted: Missing parent node relation.");
+
+            const uniqueStringId = `node-m${matrixId}-` + Date.now().toString();
+            
+            dataRef.push({ 
+                id: uniqueStringId, 
+                name: uName.value, 
+                level: lvl, 
+                parentId: lvl === 1 ? null : String(uParent.value) 
+            });
+            
+            uName.value = ''; 
+            saveCallback(); 
+            renderEngine(matrixId); 
+            uLevel.dispatchEvent(new Event('change'));
+        });
+
+        window['cascade' + matrixId] = function(currentLevel) {
+            const dataRef = matrixId === 1 ? db1 : db2;
+            const parentValue = dropdowns[currentLevel].value;
+            const nextLevel = currentLevel + 1;
+            if (currentLevel === 5) return;
+
+            if (!parentValue) {
+                for (let i = nextLevel; i <= 5; i++) { dropdowns[i].innerHTML = `<option value="">-- Select Tier ${i} --</option>`; dropdowns[i].disabled = true; }
+                return;
+            }
+            
+            const matches = dataRef.filter(u => u.level === nextLevel && String(u.parentId) === String(parentValue));
+            dropdowns[nextLevel].innerHTML = `<option value="">-- Select Tier ${nextLevel} --</option>` + matches.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+            dropdowns[nextLevel].disabled = false;
+            for (let i = nextLevel + 1; i <= 5; i++) { dropdowns[i].innerHTML = `<option value="">-- Select Tier ${i} --</option>`; dropdowns[i].disabled = true; }
+        };
+
+        for (let i = 1; i <= 4; i++) {
+            dropdowns[i].addEventListener('change', () => window['cascade' + matrixId](i));
+        }
+    }
+
+    setupMatrixEngine(1, saveM1);
+    setupMatrixEngine(2, saveM2);
+
+    // ==========================================
+    // RE-RENDER RUNTIME GRAPHICS PIPELINE
+    // ==========================================
+    function renderEngine(matrixId) {
+        const prefix = 'm' + matrixId + '-';
+        const dataRef = matrixId === 1 ? db1 : db2;
+        const directory = document.getElementById(prefix + 'editDirectory');
+        const t1Dropdown = document.getElementById(prefix + 'tier1');
+
+        if(directory) {
+            directory.innerHTML = dataRef.map(u => {
+                let pSelectHtml = '';
+                if (u.level > 1) {
+                    const availableParents = dataRef.filter(p => p.level === (u.level - 1));
+                    pSelectHtml = `<select id="edit-${prefix}parent-${u.id}">` + availableParents.map(p => `<option value="${p.id}" ${String(p.id) === String(u.parentId) ? 'selected' : ''}>Parent: ${p.name}</option>`).join('') + `</select>`;
+                }
+                
+                return `
+                <div class="edit-row">
+                    <label><strong>ID:</strong> ${u.id} (Tier ${u.level})</label>
+                    <div class="edit-controls">
+                        <input type="text" id="edit-${prefix}name-${u.id}" value="${u.name.replace(/"/g, '&quot;')}" required />
+                        ${pSelectHtml}
+                        <button class="btn-inline-save" onclick="commitMatrixInlineChange(${matrixId}, '${u.id}')">Save</button>
+                        <button class="btn-inline-del" onclick="purgeMatrixUnit(${matrixId}, '${u.id}')">Delete</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        const activeChoice = t1Dropdown.value;
+        t1Dropdown.innerHTML = `<option value="">-- Select Tier 1 --</option>` + dataRef.filter(u => u.level === 1).map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+        
+        if (dataRef.some(u => String(u.id) === String(activeChoice))) {
+            t1Dropdown.value = activeChoice; 
+        } else {
+            window['cascade' + matrixId](1);
+        }
+    }
+
+    // ==========================================
+    // MUTATION SECURITY INTERCEPTION CHECKPOINTS
+    // ==========================================
+    async function commitMatrixInlineChange(matrixId, targetId) {
+        const authorized = await verifyOrbatWriteAccess();
+        if (!authorized) return;
+
+        const dataRef = matrixId === 1 ? db1 : db2;
+        const saveCallback = matrixId === 1 ? saveM1 : saveM2;
+        const prefix = 'm' + matrixId + '-';
+        
+        const idx = dataRef.findIndex(u => String(u.id) === String(targetId));
+        if (idx === -1) return alert("System Error: target node structure missing.");
+
+        const inputEl = document.getElementById(`edit-${prefix}name-${targetId}`);
+        if (!inputEl || !inputEl.value.trim()) return alert("Halted: Node label cannot be empty.");
+
+        dataRef[idx].name = inputEl.value.trim();
+        
+        const pSel = document.getElementById(`edit-${prefix}parent-${targetId}`);
+        if (pSel) dataRef[idx].parentId = String(pSel.value);
+        
+        saveCallback(); 
+        renderEngine(matrixId);
+        alert("Changes saved successfully.");
+    }
+
+    async function purgeMatrixUnit(matrixId, targetId) {
+        const authorized = await verifyOrbatWriteAccess();
+        if (!authorized) return;
+
+        if(!confirm("Purging this node drops all nested sub-tier elements. Proceed?")) return;
+        
+        const purgeChildren = (idToPurge) => {
+            if (matrixId === 1) {
+                db1.filter(u => String(u.parentId) === String(idToPurge)).forEach(child => purgeChildren(child.id));
+                db1 = db1.filter(u => String(u.id) === String(idToPurge));
+            } else {
+                db2.filter(u => String(u.parentId) === String(idToPurge)).forEach(child => purgeChildren(child.id));
+                db2 = db2.filter(u => String(u.id) === String(idToPurge));
+            }
+        };
+        
+        if (matrixId === 1) {
+            const runPurge = (id) => {
+                db1.filter(u => String(u.parentId) === String(id)).forEach(child => runPurge(child.id));
+                db1 = db1.filter(u => String(u.id) !== String(id));
+            };
+            runPurge(targetId);
+            saveM1();
+        } else {
+            const runPurge = (id) => {
+                db2.filter(u => String(u.parentId) === String(id)).forEach(child => runPurge(child.id));
+                db2 = db2.filter(u => String(u.id) !== String(id));
+            };
+            runPurge(targetId);
+            saveM2();
+        }
+        
+        renderEngine(matrixId);
+    }
+
+    renderEngine(1);
+    renderEngine(2);
+    
+    document.getElementById('m1-unitLevel').dispatchEvent(new Event('change'));
+    document.getElementById('m2-unitLevel').dispatchEvent(new Event('change'));
+</script>
+</body>
+</html>

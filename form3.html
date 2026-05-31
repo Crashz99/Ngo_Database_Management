@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Form C</title>
+    <style>
+        body,html{margin:0;padding:0;background-color:#0b0d10;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#ffffff;}
+        .viewport-wrapper{display:flex;justify-content:center;padding:40px 20px;box-sizing:border-box;min-height:100vh;}
+        .form-card{width:100%;max-width:950px;background:rgba(18,22,28,0.85);border:2px solid #2d3542;border-top:6px solid #ffaa00;border-radius:14px;padding:40px;box-shadow:0 20px 50px rgba(0,0,0,0.6);backdrop-filter:blur(10px);}
+        .form-header{border-bottom:1px solid #2d3542;padding-bottom:20px;margin-bottom:30px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;}
+        .form-title-block h1{margin:0;font-size:24px;font-weight:800;letter-spacing:0.5px;}
+        .header-controls-group{display:flex;align-items:center;gap:16px;}
+        .btn-back{background:transparent;border:1px solid #343e4c;color:#8a99ad;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;transition:all 0.2s ease;}
+        .btn-back:hover{border-color:#ffaa00;color:#ffffff;background:rgba(255,170,0,0.05);}
+        .subform-toggle-container{display:flex;background:#12161c;border:2px solid #343e4c;border-radius:8px;padding:4px;}
+        .toggle-btn{background:transparent;border:none;color:#8a99ad;padding:10px 20px;font-size:13px;font-weight:700;border-radius:6px;cursor:pointer;transition:all 0.2s ease;}
+        .toggle-btn.active{background:#ffaa00;color:#0b0d10;}
+        .subform-view{display:none;}
+        .subform-view.active-view{display:block;}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;}
+        .form-row.three-col{grid-template-columns:1fr 1fr 1fr;}
+        .form-row.single{grid-template-columns:1fr;}
+        .field-group{display:flex;flex-direction:column;gap:8px;}
+        label{color:#8a99ad;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.75px;}
+        input[type="text"],input[type="date"],input[type="time"],select{background:#171d25;border:2px solid #343e4c;color:#ffffff;padding:12px 16px;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;width:100%;transition:border-color 0.2s ease;}
+        input:focus,select:focus{border-color:#ffaa00;}
+        .coordinate-container{background:#12161c;border:2px dashed #343e4c;border-radius:10px;padding:20px;}
+        .coordinate-inputs{display:flex;gap:12px;align-items:center;}
+        .coord-prefix{display:flex;align-items:center;background:#1c242f;border:2px solid #343e4c;border-radius:8px;flex:1;}
+        .coord-label{background:#222d3a;color:#ffaa00;padding:12px;font-size:11px;font-weight:800;border-right:2px solid #343e4c;}
+        .coord-prefix input{border:none;background:transparent;padding:12px;color:#fff;outline:none;width:100%;font-family:monospace;}
+        .dynamic-path-entry{background:rgba(23,29,37,0.6);border:1px solid #2d3542;border-left:4px solid #ffaa00;border-radius:8px;padding:20px;margin-bottom:16px;}
+        .path-title{color:#ffaa00;font-size:13px;font-weight:700;margin-bottom:15px;text-transform:uppercase;}
+        .path-row-layout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:center;}
+        .footer-actions{margin-top:40px;border-top:1px solid #2d3542;padding-top:25px;display:flex;justify-content:flex-end;}
+        .btn-submit{background:#ffaa00;color:#0b0d10;border:none;padding:14px 35px;font-size:15px;font-weight:800;border-radius:8px;cursor:pointer;transition:background 0.2s ease;}
+        .btn-submit:hover{background:#e09600;}
+        .orbat-context-bar{background:#171d25;border:1px solid #2d3542;border-left:3px solid #ffaa00;border-radius:6px;padding:10px 16px;margin-bottom:24px;display:flex;gap:24px;font-size:12px;font-weight:700;color:#8a99ad;}
+        .orbat-context-bar span{color:#fff;}
+        .dyn-row{display:grid;gap:24px;margin-bottom:24px;}
+        .dyn-row.cols1{grid-template-columns:1fr;}
+        .dyn-row.cols2{grid-template-columns:1fr 1fr;}
+        .dyn-row.cols3{grid-template-columns:1fr 1fr 1fr;}
+    </style>
+</head>
+<body>
+<div class="viewport-wrapper">
+    <div class="form-card">
+        <div class="form-header">
+            <div class="form-title-block"><h1 id="panelTitleDisplay">Site Survey</h1></div>
+            <div class="header-controls-group">
+                <button type="button" class="btn-back" onclick="window.location.href='selection.html'">&larr; Cancel</button>
+                <div class="subform-toggle-container">
+                    <button type="button" class="toggle-btn active" id="btnShowFormI" onclick="switchSubForm('I')">Site Survey</button>
+                    <button type="button" class="toggle-btn" id="btnShowFormII" onclick="switchSubForm('II')">Route Log</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTEXT BAR -->
+        <div class="orbat-context-bar" id="orbatBar" style="display:none;">
+            <div>Group A: <span id="barM1">—</span></div>
+            <div>Group B: <span id="barM2">—</span></div>
+        </div>
+
+        <!-- FORM I — Form C Type 1 -->
+        <div id="wrapperFormI" class="subform-view active-view">
+            <form id="payloadFormI">
+                <div class="form-row three-col">
+                    <div class="field-group"><label>Survey Date</label><input type="date" id="f1Date" required></div>
+                    <div class="field-group"><label>Active FROM Time</label><input type="time" id="f1TimeFrom" required></div>
+                    <div class="field-group"><label>Active TO Time</label><input type="time" id="f1TimeTo" required></div>
+                </div>
+                <!-- Dynamic dropdowns for Type 1 -->
+                <div id="dynT1Container"></div>
+                <div class="form-row single">
+                    <div class="field-group coordinate-container">
+                        <label style="margin-bottom:10px;display:block;color:#ffaa00;">Geographic Location</label>
+                        <div class="coordinate-inputs">
+                            <div class="coord-prefix"><span class="coord-label">LAT</span><input type="text" id="f1Lat" placeholder="00.000000" required></div>
+                            <div class="coord-prefix"><span class="coord-label">LNG</span><input type="text" id="f1Lng" placeholder="00.000000" required></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-actions"><button type="submit" class="btn-submit">Submit</button></div>
+            </form>
+        </div>
+
+        <!-- FORM II — Form C Type 2 -->
+        <div id="wrapperFormII" class="subform-view">
+            <form id="payloadFormII">
+                <div class="form-row">
+                    <div class="field-group"><label>Date</label><input type="date" id="f3Date" required></div>
+                </div>
+                <!-- Dynamic dropdowns for Type 2 -->
+                <div id="dynT2Container"></div>
+                <div class="form-row">
+                    <div class="field-group"><label>Active FROM Time</label><input type="time" id="f3TimeFrom" required></div>
+                    <div class="field-group"><label>Active TO Time</label><input type="time" id="f3TimeTo" required></div>
+                </div>
+                <div class="form-row single">
+                    <div class="field-group" style="background:#171d25;border:2px solid #2d3542;padding:20px;border-radius:8px;">
+                        <label style="color:#ffaa00;font-size:12px;">NUMBER OF WAYPOINTS</label>
+                        <p style="margin:4px 0 12px;color:#8a99ad;font-size:13px;">Specify the number of waypoints to expand dynamically.</p>
+                        <select id="pathVolumeSelector" onchange="generateDynamicPathFields(this.value)" style="max-width:300px;border-color:#ffaa00;">
+                            <option value="0">0 Paths</option>
+                            <option value="1">1 Path</option>
+                            <option value="2">2 Paths</option>
+                            <option value="3">3 Paths</option>
+                            <option value="4">4 Paths</option>
+                            <option value="5">5 Paths</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="dynamicPathsStackContainer"></div>
+                <div class="footer-actions"><button type="submit" class="btn-submit">Submit</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Selection context ─────────────────────────────────────────────
+var orbatState = JSON.parse(sessionStorage.getItem('temp_active_selection')) || {};
+var m1Name = orbatState.matrix1_node || '';
+var m2Name = orbatState.matrix2_node || '';
+if (m1Name || m2Name) {
+    document.getElementById('orbatBar').style.display = 'flex';
+    document.getElementById('barM1').textContent = m1Name || 'Unassigned';
+    document.getElementById('barM2').textContent = m2Name || 'Unassigned';
+}
+
+function buildOrbatContext() {
+    return {
+        matrix1_node: m1Name || 'Unassigned',
+        matrix2_node: m2Name || 'Unassigned',
+        rawMatrix1: orbatState.matrix1 || {},
+        rawMatrix2: orbatState.matrix2 || {}
+    };
+}
+
+// ── Dynamic config dropdowns ──────────────────────────────────
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function getFormConfig(key) {
+    try {
+        var c = JSON.parse(localStorage.getItem('form_dropdown_config'));
+        if (c && c[key] && c[key].length) return c[key];
+    } catch(e) {}
+    return [];
+}
+
+var DEFAULT_T1 = [
+    { key:'profile', label:'Sensor Name', options:['Alpha','Delta'] },
+    { key:'protocol', label:'Sensor Type', options:['Alpha','Beta'] },
+    { key:'allocation', label:'Loc', options:['Alpha','Delta'] },
+    { key:'priority', label:'Detector', options:['Alpha','Beta'] }
+];
+var DEFAULT_T2 = [
+    { key:'routingPool', label:'Detector', options:['Alpha','Beta'] },
+    { key:'fallbackSequence', label:'Sensor', options:['Alpha','Delta'] },
+    { key:'telemetryWindow', label:'Platform', options:['Alpha','Beta'] }
+];
+
+function renderDynDropdowns(containerId, fields, prefix, cols) {
+    var ct = document.getElementById(containerId);
+    if (!fields.length) { ct.innerHTML = ''; return; }
+    var html = '';
+    for (var i = 0; i < fields.length; i += cols) {
+        var chunk = fields.slice(i, Math.min(i+cols, fields.length));
+        html += '<div class="dyn-row cols'+cols+'">';
+        chunk.forEach(function(f){
+            html += '<div class="field-group"><label>'+escHtml(f.label)+'</label><select id="'+prefix+f.key+'" required>'
+                +'<option value="" disabled selected hidden>Select...</option>';
+            f.options.forEach(function(o){ html += '<option value="'+escHtml(o)+'">'+escHtml(o)+'</option>'; });
+            html += '</select></div>';
+        });
+        for (var p = chunk.length; p < cols; p++) html += '<div></div>';
+        html += '</div>';
+    }
+    ct.innerHTML = html;
+}
+
+function getDynValues(fields, prefix) {
+    var out = {};
+    fields.forEach(function(f){
+        var el = document.getElementById(prefix+f.key);
+        if (el) out[f.key] = el.value;
+    });
+    return out;
+}
+
+var t1Fields = getFormConfig('f3t1').length ? getFormConfig('f3t1') : DEFAULT_T1;
+var t2Fields = getFormConfig('f3t2').length ? getFormConfig('f3t2') : DEFAULT_T2;
+renderDynDropdowns('dynT1Container', t1Fields, 't1_', 3);
+renderDynDropdowns('dynT2Container', t2Fields, 't2_', 2);
+
+// ── Sub-form switch ───────────────────────────────────────────
+function switchSubForm(formType) {
+    var titleDisplay = document.getElementById('panelTitleDisplay');
+    var viewI = document.getElementById('wrapperFormI');
+    var viewII = document.getElementById('wrapperFormII');
+    var btnI = document.getElementById('btnShowFormI');
+    var btnII = document.getElementById('btnShowFormII');
+    if (formType === 'I') {
+        viewI.classList.add('active-view'); viewII.classList.remove('active-view');
+        btnI.classList.add('active'); btnII.classList.remove('active');
+        titleDisplay.innerText = "Site Survey";
+    } else {
+        viewI.classList.remove('active-view'); viewII.classList.add('active-view');
+        btnI.classList.remove('active'); btnII.classList.add('active');
+        titleDisplay.innerText = "Route Log";
+    }
+}
+
+// ── Path fields ───────────────────────────────────────────────
+function generateDynamicPathFields(quantity) {
+    var tc = document.getElementById('dynamicPathsStackContainer');
+    tc.innerHTML = "";
+    var count = parseInt(quantity, 10);
+    if (count === 0) return;
+    for (var i = 1; i <= count; i++) {
+        var d = document.createElement('div');
+        d.className = 'dynamic-path-entry';
+        d.innerHTML = '<div class="path-title">Path #'+i+'</div>'
+            +'<div class="path-row-layout">'
+            +'<div class="field-group coordinate-container" style="padding:12px;"><label style="color:#ffaa00;margin-bottom:4px;">Origin Coordinate</label><div class="coordinate-inputs"><div class="coord-prefix"><span class="coord-label" style="padding:6px;font-size:10px;">LAT</span><input type="text" class="path-from-lat" placeholder="00.00" style="padding:6px;" required></div><div class="coord-prefix"><span class="coord-label" style="padding:6px;font-size:10px;">LNG</span><input type="text" class="path-from-lng" placeholder="00.00" style="padding:6px;" required></div></div></div>'
+            +'<div class="field-group"><label>Waypoint</label><input type="text" class="path-via" placeholder="Waypoint Name..." required></div>'
+            +'<div class="field-group coordinate-container" style="padding:12px;"><label style="color:#ffaa00;margin-bottom:4px;">Destination Coordinate</label><div class="coordinate-inputs"><div class="coord-prefix"><span class="coord-label" style="padding:6px;font-size:10px;">LAT</span><input type="text" class="path-to-lat" placeholder="00.00" style="padding:6px;" required></div><div class="coord-prefix"><span class="coord-label" style="padding:6px;font-size:10px;">LNG</span><input type="text" class="path-to-lng" placeholder="00.00" style="padding:6px;" required></div></div></div>'
+            +'</div>';
+        tc.appendChild(d);
+    }
+}
+
+// ── FORM I SUBMIT — Form C Type 1 ──────────────────────────────────
+document.getElementById('payloadFormI').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var dynVals = getDynValues(t1Fields, 't1_');
+    var payload = Object.assign({
+        date: document.getElementById('f1Date').value,
+        timeFrom: document.getElementById('f1TimeFrom').value,
+        timeTo: document.getElementById('f1TimeTo').value,
+        location: document.getElementById('f1Lat').value + ', ' + document.getElementById('f1Lng').value
+    }, dynVals);
+
+    var tx = {
+        id: 'EVT-'+Math.floor(10000+Math.random()*90000),
+        timestamp: new Date().toISOString().replace('T',' ').substring(0,19),
+        formType: "Form 3T1",   // ← FIXED (was "Form 1")
+        orbatContext: buildOrbatContext(),
+        payload: payload
+    };
+    var recs = JSON.parse(localStorage.getItem('universal_event_collector')) || [];
+    recs.push(tx);
+    localStorage.setItem('universal_event_collector', JSON.stringify(recs));
+    sessionStorage.removeItem('temp_active_selection');
+    window.location.href = 'dashboard.html';
+});
+
+// ── FORM II SUBMIT — Form C Type 2 ─────────────────────────────────
+document.getElementById('payloadFormII').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var dynVals = getDynValues(t2Fields, 't2_');
+    var pathBlocks = document.getElementsByClassName('dynamic-path-entry');
+    var pathsCollected = [];
+    for (var i = 0; i < pathBlocks.length; i++) {
+        pathsCollected.push({
+            from: pathBlocks[i].querySelector('.path-from-lat').value+','+pathBlocks[i].querySelector('.path-from-lng').value,
+            via: pathBlocks[i].querySelector('.path-via').value,
+            to: pathBlocks[i].querySelector('.path-to-lat').value+','+pathBlocks[i].querySelector('.path-to-lng').value
+        });
+    }
+    var payload = Object.assign({
+        date: document.getElementById('f3Date').value,
+        timeFrom: document.getElementById('f3TimeFrom').value,
+        timeTo: document.getElementById('f3TimeTo').value,
+        paths: pathsCollected
+    }, dynVals);
+
+    var tx = {
+        id: 'EVT-'+Math.floor(10000+Math.random()*90000),
+        timestamp: new Date().toISOString().replace('T',' ').substring(0,19),
+        formType: "Form 3",
+        orbatContext: buildOrbatContext(),
+        payload: payload
+    };
+    var recs = JSON.parse(localStorage.getItem('universal_event_collector')) || [];
+    recs.push(tx);
+    localStorage.setItem('universal_event_collector', JSON.stringify(recs));
+    sessionStorage.removeItem('temp_active_selection');
+    window.location.href = 'dashboard.html';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Records Archive</title>
+    <link rel="stylesheet" href="assets/leaflet.css" />
+    <style>
+        :root {
+            --border-bold: #2d3542;
+            --accent-color: #ffaa00;
+            --text-muted: #8a99ad;
+            --text-primary: #ffffff;
+            --bg-dark: #0b0d10;
+            --card-bg: rgba(18, 22, 28, 0.85);
+            --danger-color: #ff4a4a;
+            --success-color: #00ffaa;
+            --input-bg: #12161c;
+            --form1-color: #ffaa00;
+            --form2-color: #237a80;
+            --form3-color: #a142ff;
+            --sibling-color: #4a9eff;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body, html { margin: 0; padding: 0; background-color: var(--bg-dark); color: var(--text-primary); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .dashboard-container { max-width: 1300px; margin: 40px auto; padding: 0 20px; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-bold); margin-bottom: 30px; padding-bottom: 20px; flex-wrap: wrap; gap: 16px; }
+        .header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .btn-system { background: transparent; border: 1px solid var(--border-bold); color: var(--text-muted); padding: 9px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; transition: all 0.2s ease; }
+        .btn-system:hover { border-color: var(--accent-color); color: var(--text-primary); background: rgba(255,170,0,0.05); }
+        .btn-admin-toggle.admin-active { border-color: var(--accent-color); background: rgba(255,170,0,0.1); color: var(--accent-color); }
+        #mapToggleBtn.map-visible { border-color: #a142ff; color: #a142ff; background: rgba(161,66,255,0.08); }
+        .map-section-wrapper { display: none; background: var(--card-bg); border: 2px solid var(--border-bold); border-radius: 12px; padding: 20px; margin-bottom: 25px; }
+        .map-section-title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.75px; margin-bottom: 12px; }
+        #worldMap { width: 100%; height: 500px; border: 1px solid var(--border-bold); border-radius: 8px; background: #12161c; }
+        .leaflet-container { background: #12161c; font-family: inherit; }
+        .leaflet-popup-content-wrapper { background: #12161c !important; color: #fff !important; border: 1px solid var(--border-bold); font-family: monospace; border-radius: 6px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important; }
+        .leaflet-popup-tip { background: #12161c !important; }
+        .leaflet-bar a { background: #1c232e; color: #fff; border-color: var(--border-bold); }
+        .leaflet-bar a:hover { background: #2d3542; }
+
+        /* FILTERS */
+        .filter-deck { background: var(--card-bg); border: 2px solid var(--border-bold); border-radius: 12px; padding: 20px; margin-bottom: 25px; }
+        .filter-row { display: grid; gap: 14px; margin-bottom: 14px; }
+        .filter-row:last-child { margin-bottom: 0; }
+        .filter-row.r1 { grid-template-columns: 1fr 1fr 1fr 1fr 1fr; }
+        .filter-row.r2 { grid-template-columns: 1fr 1fr 1fr 1fr auto auto; }
+        .filter-row.r3 { grid-template-columns: 1fr 1fr 1fr auto; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { color: var(--text-muted); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.75px; }
+        .filter-deck select, .filter-deck input[type="date"] { background: var(--input-bg); border: 1px solid var(--border-bold); color: #fff; padding: 9px 12px; border-radius: 6px; font-size: 12px; outline: none; width: 100%; }
+        .filter-deck select:focus, .filter-deck input:focus { border-color: var(--accent-color); }
+        .filter-group.sibling-group label { color: var(--sibling-color); }
+        .filter-group.sibling-group select { border-color: rgba(74,158,255,0.35); }
+        .filter-group.sibling-group select:focus { border-color: var(--sibling-color); }
+        .btn-export { background: rgba(0,255,170,0.08); border: 1px solid var(--success-color); color: var(--success-color); padding: 9px 18px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; white-space: nowrap; align-self: flex-end; }
+        .btn-export:hover { background: var(--success-color); color: #0b0d10; }
+        .btn-clear-filters { background: transparent; border: 1px solid var(--border-bold); color: var(--text-muted); padding: 9px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; align-self: flex-end; }
+        .btn-clear-filters:hover { border-color: var(--danger-color); color: var(--danger-color); }
+
+        .results-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .results-count { font-size: 12px; color: var(--text-muted); font-weight: 700; }
+        .results-count span { color: var(--accent-color); }
+
+        .glass-card { background: var(--card-bg); border: 1px solid var(--border-bold); border-radius: 12px; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .record-card { background: #12161c; border: 2px solid var(--border-bold); border-left: 5px solid var(--accent-color); padding: 22px; border-radius: 8px; margin-bottom: 20px; position: relative; }
+        .record-card.form-1-theme { border-left-color: var(--form1-color); }
+        .record-card.form-2-theme { border-left-color: var(--form2-color); }
+        .record-card.form-3-theme { border-left-color: var(--form3-color); }
+        .record-meta { display: flex; gap: 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 12px; color: var(--text-muted); flex-wrap: wrap; align-items: center; }
+        .id-badge { color: #fff; background: #1c232e; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-bold); font-family: monospace; }
+        .tag-matrix { background: #171d25; border: 1px solid var(--border-bold); padding: 5px 10px; border-radius: 4px; display: inline-flex; gap: 12px; font-size: 11px; color: #cfd8e3; }
+        .tag-matrix span strong { color: var(--accent-color); }
+        .tag-sibling { background: rgba(74,158,255,0.08); border: 1px solid rgba(74,158,255,0.3); padding: 4px 8px; border-radius: 4px; font-size: 11px; color: var(--sibling-color); font-weight: 700; }
+        .payload-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; background: rgba(23,29,37,0.4); padding: 12px; border-radius: 6px; border: 1px solid rgba(45,53,66,0.5); margin-top: 10px; }
+        .payload-item { font-size: 13px; color: #b8ccf3; }
+        .payload-item strong { color: var(--text-muted); text-transform: uppercase; font-size: 10px; display: block; margin-bottom: 2px; letter-spacing: 0.5px; }
+        .paths-container { margin-top: 12px; background: #171d25; padding: 10px; border-radius: 6px; border: 1px solid var(--border-bold); }
+        .path-tag { display: inline-block; background: #1c232e; border: 1px solid var(--border-bold); padding: 4px 8px; border-radius: 4px; font-size: 11px; margin: 3px; color: #cfd8e3; }
+        .note-box { margin: 10px 0 0; color: #b8ae9c; font-size: 13px; font-style: italic; background: #171d25; padding: 10px; border-radius: 4px; border: 1px solid var(--border-bold); }
+        .admin-controls-panel { display: none; position: absolute; top: 18px; right: 18px; gap: 8px; }
+        body.admin-mode-enabled .admin-controls-panel { display: flex; }
+        .btn-danger { background: rgba(255,74,74,0.1); border: 1px solid var(--danger-color); color: var(--danger-color); padding: 5px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .btn-danger:hover { background: var(--danger-color); color: #fff; }
+        .btn-save-inline { background: rgba(0,255,170,0.1); border: 1px solid var(--success-color); color: var(--success-color); padding: 5px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .btn-save-inline:hover { background: var(--success-color); color: #0b0d10; }
+        .edit-fields-area { margin-top: 10px; display: none; flex-direction: column; gap: 6px; }
+        body.admin-mode-enabled .edit-fields-area { display: flex; }
+        .admin-edit-input { background: #1c232e; border: 1px solid var(--border-bold); color: #fff; padding: 8px; border-radius: 6px; font-size: 13px; font-family: inherit; width: 100%; resize: vertical; }
+        @media (max-width: 900px) { .filter-row.r1, .filter-row.r2, .filter-row.r3 { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+<div class="dashboard-container">
+    <div class="header-bar">
+        <div>
+            <h2 style="margin:0; font-size:24px; font-weight:800; letter-spacing:0.5px;">OpLog — Field Records</h2>
+            <span style="font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">All submitted field logs</span>
+        </div>
+        <div class="header-actions">
+            <button class="btn-system btn-admin-toggle" id="adminToggleBtn" onclick="toggleAdminMode()">Admin Mode</button>
+            <button class="btn-system" id="adminConfigBtn" onclick="window.location.href='form-config.html'" style="display:none; border-color:#ffaa00; color:#ffaa00;">⚙ Form Config</button>
+            <button class="btn-system" onclick="window.location.href='entity-selector.html'">&larr; Matrixlarr; Selector</button>
+            <button class="btn-system" id="mapToggleBtn" onclick="toggleMapVisibility()" style="border-color:#00ffaa; color:#00ffaa;">Show Map</button>
+            <button class="btn-system" onclick="window.location.href='stats.html'" style="border-color:#4a9eff; color:#4a9eff;">Statistics</button>
+            <button class="btn-system" onclick="window.location.href='ai-workbench.html'" style="border-color:var(--accent-color); color:var(--accent-color);">AI Engine</button>
+        </div>
+    </div>
+
+    <div class="map-section-wrapper" id="mapSection">
+        <div class="map-section-title">&#9632; Live Coordinate Map</div>
+        <div id="worldMap"></div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filter-deck">
+        <!-- Row 1: Date / Form / M1 / M2 / Sibling -->
+        <div class="filter-row r1">
+            <div class="filter-group">
+                <label>Date From</label>
+                <input type="date" id="filterStartDate" onchange="processActiveFilters()">
+            </div>
+            <div class="filter-group">
+                <label>Date To</label>
+                <input type="date" id="filterEndDate" onchange="processActiveFilters()">
+            </div>
+            <div class="filter-group">
+                <label>Form Type</label>
+                <select id="filterFormType" onchange="processActiveFilters()">
+                    <option value="ALL">All Forms</option>
+                    <option value="Form 1">Form A</option>
+                    <option value="Form 2">Form B</option>
+                    <option value="Form 3T1">Form C Type 1</option>
+                    <option value="Form 3">Form C Type 2</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Group A</label>
+                <select id="filterM1" onchange="processActiveFilters()">
+                    <option value="ALL">All Group A</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Group B</label>
+                <select id="filterM2" onchange="processActiveFilters()">
+                    <option value="ALL">All Group B</option>
+                </select>
+            </div>
+        </div>
+        <!-- Row 2: Form-specific + Sibling + buttons -->
+        <div class="filter-row r2">
+            <div class="filter-group">
+                <label>Activity — Field Office</label>
+                <select id="filterActivity" onchange="processActiveFilters()">
+                    <option value="ALL">All Categorys</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Incident — Resolution</label>
+                <select id="filterResult" onchange="processActiveFilters()">
+                    <option value="ALL">All Results</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Survey — Type</label>
+                <select id="filterXYZ" onchange="processActiveFilters()">
+                    <option value="ALL">All</option>
+                </select>
+            </div>
+            <div class="filter-group sibling-group">
+                <label>&#x2194; Linked Pair</label>
+                <select id="filterSibling" onchange="processActiveFilters()">
+                    <option value="ALL">All Pairs</option>
+                </select>
+            </div>
+            <button class="btn-clear-filters" onclick="clearAllFilters()">✕ Clear</button>
+            <button class="btn-export" onclick="exportFilteredRecords()">⬇ Export JSON</button>
+        </div>
+    </div>
+
+    <div class="results-bar">
+        <div class="results-count">Showing <span id="resultCount">0</span> records</div>
+    </div>
+
+    <div class="glass-card">
+        <div id="masterLogContainer"></div>
+    </div>
+</div>
+
+<script src="assets/leaflet.js"></script>
+<script>
+var adminModeActive = false;
+var currentlyFilteredLogs = [];
+var map = null, mapMarkerLayerGroup = null, mapInitialized = false, mapVisible = false;
+var SYSTEM_PROTOCOL_HASH = "790f48e3ba51e2d0762e7d4a74d4076a62cfb34d44e3dfbc43798fe9ff399602";
+
+// Load sibling pairs from orbat storage
+function getSiblingPairs() {
+    try { return JSON.parse(localStorage.getItem('oplog_linked_pairs')) || []; }
+    catch(e) { return []; }
+}
+
+function detectFormType(rec) {
+    var p = rec.payload || {};
+    if (p.paths !== undefined) return "Form 3";
+    if (p.timeFrom !== undefined && p.profile !== undefined) return "Form 3T1";
+    // Also catch by formType tag for Type 1
+    if (rec.formType === "Form 3T1") return "Form 3T1";
+    if (p.manifestDate !== undefined || p.locationZone !== undefined || p.identifierIndex !== undefined) return "Form 2";
+    if (p.small_input !== undefined || p.dropdown_1 !== undefined) return "Form 1";
+    return rec.formType || "Unknown";
+}
+function extractDate(rec) { var p = rec.payload||{}; return p.date||p.manifestDate||p.f2Date||p.logDate||""; }
+function extractTime(rec) { var p = rec.payload||{}; return p.time||p.manifestTime||p.f2Time||p.timeFrom||""; }
+function extractTerminals(rec) {
+    var ctx = rec.orbatContext||{};
+    return {
+        m1: ctx.matrix1_node || ctx.matrix1 || rec.matrix1_node || "Unassigned",
+        m2: ctx.matrix2_node || ctx.matrix2 || rec.matrix2_node || "Unassigned"
+    };
+}
+
+// ── Sibling matching ──────────────────────────────────────────
+function recordMatchesSiblingPair(rec, pair) {
+    var t = extractTerminals(rec);
+    return t.m1 === pair.m1Name && t.m2 === pair.m2Name;
+}
+
+// ── Populate filter dropdowns ─────────────────────────────────
+function populateDynamicFilters() {
+    var raw = JSON.parse(localStorage.getItem('universal_event_collector')) || [];
+    var m1Set = {}, m2Set = {}, actSet = {}, resSet = {}, XYZSet = {};
+    raw.forEach(function(r) {
+        var t = extractTerminals(r);
+        if (t.m1 && t.m1 !== 'Unassigned') m1Set[t.m1] = 1;
+        if (t.m2 && t.m2 !== 'Unassigned') m2Set[t.m2] = 1;
+        var p = r.payload || {};
+        if (p.dropdown_3) actSet[p.dropdown_3] = 1;
+        if (p.routingProtocol) resSet[p.routingProtocol] = 1;
+        if (p.telemetryWindow) XYZSet[p.telemetryWindow] = 1;
+        if (p.routingPool) XYZSet[p.routingPool] = 1;
+    });
+    function fill(id, obj, label) {
+        var sel = document.getElementById(id);
+        var cur = sel.value;
+        sel.innerHTML = '<option value="ALL">'+(label||'All')+'</option>';
+        Object.keys(obj).sort().forEach(function(v) {
+            sel.innerHTML += '<option value="'+v+'">'+v+'</option>';
+        });
+        if (cur) sel.value = cur;
+    }
+    fill('filterM1', m1Set, 'All Group A');
+    fill('filterM2', m2Set, 'All Group B');
+    fill('filterActivity', actSet, 'All Categorys');
+    fill('filterResult', resSet, 'All Results');
+    fill('filterXYZ', XYZSet, 'All');
+
+    // Sibling pairs filter
+    var pairs = getSiblingPairs();
+    var sibSel = document.getElementById('filterSibling');
+    var curSib = sibSel.value;
+    sibSel.innerHTML = '<option value="ALL">All Pairs</option>';
+    pairs.forEach(function(p) {
+        sibSel.innerHTML += '<option value="'+p.id+'">'+escHtml(p.pairName)+'</option>';
+    });
+    if (curSib) sibSel.value = curSib;
+}
+
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function clearAllFilters() {
+    document.getElementById('filterStartDate').value = '';
+    document.getElementById('filterEndDate').value = '';
+    ['filterFormType','filterM1','filterM2','filterActivity','filterResult','filterXYZ','filterSibling'].forEach(function(id){ document.getElementById(id).value = 'ALL'; });
+    processActiveFilters();
+}
+
+// ── Map ───────────────────────────────────────────────────────
+function toggleMapVisibility() {
+    var section = document.getElementById('mapSection'), btn = document.getElementById('mapToggleBtn');
+    if (!mapVisible) {
+        section.style.display = 'block'; btn.textContent = 'Hide Map'; btn.classList.add('map-visible'); mapVisible = true;
+        setTimeout(function() { if (!mapInitialized) initMap(); else map.invalidateSize(); }, 50);
+    } else {
+        section.style.display = 'none'; btn.textContent = 'Show Map'; btn.classList.remove('map-visible'); mapVisible = false;
+    }
+}
+function initMap() {
+    if (map) { map.remove(); map = null; }
+    map = L.map('worldMap', { center: [28.5, 70.5], zoom: 6, minZoom: 4, maxZoom: 14 });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM &copy; CARTO', subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+    mapMarkerLayerGroup = L.layerGroup().addTo(map);
+    setTimeout(function() { map.invalidateSize(); }, 100);
+    mapInitialized = true;
+    plotOperationalPinsOnCanvas();
+}
+function plotOperationalPinsOnCanvas() {
+    if (!mapInitialized || !mapMarkerLayerGroup) return;
+    mapMarkerLayerGroup.clearLayers();
+    currentlyFilteredLogs.forEach(function(rec) {
+        var p = rec.payload; if (!p) return;
+        var lat = NaN, lng = NaN;
+        if (p.primaryCoords) { lat = parseFloat(p.primaryCoords.lat); lng = parseFloat(p.primaryCoords.lng); }
+        else if (p.paths && p.paths.length > 0 && p.paths[0].from) { var pts = p.paths[0].from.split(','); lat = parseFloat(pts[0]); lng = parseFloat(pts[1]); }
+        else if (p.location) { var lpts = p.location.split(','); lat = parseFloat(lpts[0]); lng = parseFloat(lpts[1]); }
+        if (!isNaN(lat) && !isNaN(lng)) {
+            var ft = detectFormType(rec);
+            var lbl = ft === "Form 1" ? "Form A" : ft === "Form 2" ? "Form B" : "Form C";
+            var terms = extractTerminals(rec);
+            var pop = '<div style="padding:6px;font-family:monospace;font-size:12px;min-width:180px;"><b style="color:#ffaa00;">'+rec.id+'</b><br><span style="color:#8a99ad;">'+lbl+'</span><br><hr style="border-color:#2d3542;margin:4px 0;"><span style="color:#00ffaa;">Lat:</span> '+lat+'<br><span style="color:#00ffaa;">Lng:</span> '+lng+'<br><span style="color:#8a99ad;">Group A: </span>'+terms.m1+'<br><span style="color:#8a99ad;">Group B: </span>'+terms.m2+'</div>';
+            L.marker([lat, lng]).addTo(mapMarkerLayerGroup).bindPopup(pop);
+        }
+    });
+}
+
+// ── Admin ─────────────────────────────────────────────────────
+async function computeSystemHash(str) {
+    var b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(b)).map(function(x){ return x.toString(16).padStart(2,'0'); }).join('');
+}
+async function toggleAdminMode() {
+    var btn = document.getElementById('adminToggleBtn'), cfgBtn = document.getElementById('adminConfigBtn');
+    if (adminModeActive) {
+        adminModeActive = false; document.body.classList.remove('admin-mode-enabled');
+        btn.classList.remove('admin-active'); btn.textContent = "Admin Mode"; cfgBtn.style.display = 'none';
+        processActiveFilters(); return;
+    }
+    var key = prompt("ENTER ADMINISTRATIVE AUTHORIZATION KEY:");
+    if (!key) return;
+    var hash = await computeSystemHash(key);
+    if (hash === SYSTEM_PROTOCOL_HASH) {
+        adminModeActive = true; document.body.classList.add('admin-mode-enabled');
+        btn.classList.add('admin-active'); btn.textContent = "Deactivate Admin"; cfgBtn.style.display = 'inline-block';
+        processActiveFilters();
+    } else { alert("ACCESS DENIED."); }
+}
+
+// ── Record ops ────────────────────────────────────────────────
+function deleteRecord(id) {
+    if (!confirm('Confirm deletion of ['+id+']?')) return;
+    var recs = JSON.parse(localStorage.getItem('universal_event_collector'))||[];
+    localStorage.setItem('universal_event_collector', JSON.stringify(recs.filter(function(r){ return r.id !== id; })));
+    populateDynamicFilters(); processActiveFilters();
+}
+function saveInlineEdit(id) {
+    var card = document.getElementById('card-'+id);
+    var notes = card.querySelector('.edit-notes-input') ? card.querySelector('.edit-notes-input').value : "";
+    var recs = JSON.parse(localStorage.getItem('universal_event_collector'))||[];
+    var idx = recs.findIndex(function(r){ return r.id===id; });
+    if (idx !== -1) {
+        recs[idx].notes = notes;
+        var p = recs[idx].payload;
+        if (p) { if (p.large_input_1!==undefined) p.large_input_1=notes; if (p.remarks!==undefined) p.remarks=notes; }
+        localStorage.setItem('universal_event_collector', JSON.stringify(recs));
+        alert("Committed."); processActiveFilters();
+    }
+}
+
+// ── Filters ───────────────────────────────────────────────────
+function processActiveFilters() {
+    var raw = JSON.parse(localStorage.getItem('universal_event_collector'))||[];
+    var s = document.getElementById('filterStartDate').value;
+    var e = document.getElementById('filterEndDate').value;
+    var ft = document.getElementById('filterFormType').value;
+    var m1f = document.getElementById('filterM1').value;
+    var m2f = document.getElementById('filterM2').value;
+    var actf = document.getElementById('filterActivity').value;
+    var resf = document.getElementById('filterResult').value;
+    var XYZf = document.getElementById('filterXYZ').value;
+    var siblingId = document.getElementById('filterSibling').value;
+
+    // Resolve sibling pair if selected
+    var activePair = null;
+    if (siblingId !== 'ALL') {
+        var pairs = getSiblingPairs();
+        activePair = pairs.find(function(p){ return p.id === siblingId; }) || null;
+    }
+
+    currentlyFilteredLogs = raw.filter(function(rec) {
+        var d = extractDate(rec)||rec.timestamp&&rec.timestamp.substring(0,10)||'';
+        if (s && d && d < s) return false;
+        if (e && d && d > e) return false;
+        var type = detectFormType(rec);
+        if (ft !== 'ALL' && type !== ft) return false;
+        var terms = extractTerminals(rec);
+        if (m1f !== 'ALL' && terms.m1 !== m1f) return false;
+        if (m2f !== 'ALL' && terms.m2 !== m2f) return false;
+        var p = rec.payload||{};
+        if (actf !== 'ALL' && p.dropdown_3 !== actf) return false;
+        if (resf !== 'ALL' && p.routingProtocol !== resf) return false;
+        if (XYZf !== 'ALL' && p.telemetryWindow !== XYZf && p.routingPool !== XYZf) return false;
+        // Sibling pair filter
+        if (activePair && !recordMatchesSiblingPair(rec, activePair)) return false;
+        return true;
+    });
+
+    currentlyFilteredLogs.sort(function(a,b){ return (b.timestamp||'').localeCompare(a.timestamp||''); });
+    document.getElementById('resultCount').textContent = currentlyFilteredLogs.length;
+    plotOperationalPinsOnCanvas();
+    renderLogDeck();
+}
+
+// ── Render ────────────────────────────────────────────────────
+function renderLogDeck() {
+    var container = document.getElementById('masterLogContainer');
+    container.innerHTML = "";
+    if (!currentlyFilteredLogs.length) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-weight:600;">No logs match active filters.</div>';
+        return;
+    }
+    currentlyFilteredLogs.forEach(function(rec) {
+        var ft = detectFormType(rec), p = rec.payload||{};
+        var fc = ft==="Form 1"?"form-1-theme":ft==="Form 2"?"form-2-theme":"form-3-theme";
+        var rn = ft==="Form 1"?"Form A":ft==="Form 2"?"Form B":ft==="Form 3T1"?"Form C Type 1":"Form C Type 2";
+        var terms = extractTerminals(rec);
+        var notes = p.large_input_1||rec.notes||"";
+
+        // Sibling badge if matches any pair
+        var pairs = getSiblingPairs();
+        var matchedPair = pairs.find(function(pair){ return recordMatchesSiblingPair(rec, pair); });
+        var siblingBadge = matchedPair ? '<span class="tag-sibling">&#x2194; '+escHtml(matchedPair.pairName)+'</span>' : '';
+
+        var html = '<div class="record-card '+fc+'" id="card-'+rec.id+'">'
+            +'<div class="admin-controls-panel">'
+            +'<button class="btn-save-inline" onclick="saveInlineEdit(\''+rec.id+'\')">Save</button>'
+            +'<button class="btn-danger" onclick="deleteRecord(\''+rec.id+'\')">Delete</button>'
+            +'</div>'
+            +'<div class="record-meta">'
+            +'<span class="id-badge">'+rec.id+'</span>'
+            +'<span style="color:var(--accent-color);font-weight:800;">'+rn+'</span>'
+            +'<span>'+(extractDate(rec)||"N/A")+'</span>'
+            +'<span>'+(extractTime(rec)||"N/A")+'</span>'
+            +'<div class="tag-matrix"><span>Group A: <strong>'+terms.m1+'</strong></span><span>Group B: <strong>'+terms.m2+'</strong></span></div>'
+            + siblingBadge
+            +'</div>';
+
+        if (ft==="Form 1") {
+            html += '<div class="payload-grid">'
+                +'<div class="payload-item"><strong>Reference</strong>'+(p.small_input||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Category</strong>'+(p.dropdown_1||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Equipment</strong>'+(p.dropdown_2||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Category</strong>'+(p.dropdown_3||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Primary Notes</strong>'+(p.large_input_1||'None')+'</div>'
+                +'<div class="payload-item"><strong>Analysis</strong>'+(p.large_input_2||'None')+'</div>'
+                +'</div>';
+        } else if (ft==="Form 2") {
+            var la=(p.primaryCoords&&p.primaryCoords.lat)||'N/A', lo=(p.primaryCoords&&p.primaryCoords.lng)||'N/A';
+            var la2=(p.boundaryCoords&&p.boundaryCoords.lat)||'N/A', lo2=(p.boundaryCoords&&p.boundaryCoords.lng)||'N/A';
+            html += '<div class="payload-grid">'
+                +'<div class="payload-item"><strong>Zone</strong>'+(p.locationZone||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Reference ID</strong>'+(p.identifierIndex||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Source</strong>'+(p.primaryClassification||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Equipment</strong>'+(p.secondaryVariable||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Location A</strong>'+la+' / '+lo+'</div>'
+                +'<div class="payload-item"><strong>Location B</strong>'+la2+' / '+lo2+'</div>'
+                +'<div class="payload-item"><strong>Secondary Equipment</strong>'+(p.envFactor||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Result</strong>'+(p.routingProtocol||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Category</strong>'+(p.remarks||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Recovered Item</strong>'+(p.authSignOff||'N/A')+'</div>'
+                +'</div>';
+        } else if (ft==="Form 3T1") {
+            html += '<div class="payload-grid">'
+                +'<div class="payload-item"><strong>Sensor Name</strong>'+(p.profile||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Sensor Type</strong>'+(p.protocol||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Loc</strong>'+(p.allocation||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Detector</strong>'+(p.priority||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Window</strong>'+(p.timeFrom||'N/A')+' → '+(p.timeTo||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Geo Location</strong>'+(p.location||'N/A')+'</div>'
+                +'</div>';
+        } else {
+            html += '<div class="payload-grid">'
+                +'<div class="payload-item"><strong>Detector</strong>'+(p.routingPool||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Sensor</strong>'+(p.fallbackSequence||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Platform</strong>'+(p.telemetryWindow||'N/A')+'</div>'
+                +'<div class="payload-item"><strong>Window</strong>'+(p.timeFrom||'N/A')+' → '+(p.timeTo||'N/A')+'</div>'
+                +'</div>';
+            if (p.paths && p.paths.length) {
+                html += '<div class="paths-container"><strong style="font-size:10px;text-transform:uppercase;color:var(--text-muted);">Paths:</strong><br>';
+                p.paths.forEach(function(pt,i){ html += '<span class="path-tag">Path#'+(i+1)+': FROM['+pt.from+'] VIA['+pt.via+'] TO['+pt.to+']</span>'; });
+                html += '</div>';
+            }
+        }
+        if (notes) html += '<div class="note-box">"'+notes+'"</div>';
+        html += '<div class="edit-fields-area"><label style="font-size:10px;color:var(--accent-color);font-weight:700;">EDIT NOTES</label>'
+            +'<textarea class="admin-edit-input edit-notes-input" rows="2">'+notes+'</textarea></div></div>';
+        container.innerHTML += html;
+    });
+}
+
+function exportFilteredRecords() {
+    if (!currentlyFilteredLogs.length) { alert("No records to export."); return; }
+    var a = document.createElement('a');
+    a.href = "data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(currentlyFilteredLogs, null, 4));
+    a.download = "Records_Export_"+(document.getElementById('filterStartDate').value||'ALL')+"_to_"+(document.getElementById('filterEndDate').value||'ALL')+".json";
+    document.body.appendChild(a); a.click(); a.remove();
+}
+
+populateDynamicFilters();
+processActiveFilters();
+</script>
+</body>
+</html>

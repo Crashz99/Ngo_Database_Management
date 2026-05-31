@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OpLog Portal</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            margin: 0; padding: 0; min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--bg-dark, #0b0d10);
+            font-family: inherit; position: relative; overflow: hidden;
+        }
+        body::before {
+            content: "";
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-image: linear-gradient(rgba(18,22,28,0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(18,22,28,0.1) 1px, transparent 1px);
+            background-size: 20px 20px; z-index: -1;
+        }
+        .portal-landing-wrapper {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; gap: 30px; width: 100%;
+            padding: 20px; box-sizing: border-box;
+            animation: terminalBootFade 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .active-branding-header { text-align: center; user-select: none; pointer-events: none; margin-bottom: 5px; }
+        .branding-sigil {
+            font-size: 11px; font-weight: 900; color: #00ffaa;
+            letter-spacing: 7px; text-transform: uppercase; margin-bottom: 12px;
+            text-shadow: 0 0 10px rgba(0,255,170,0.3);
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .branding-sigil::before, .branding-sigil::after {
+            content: ""; height: 1px; width: 30px;
+            background: linear-gradient(90deg, transparent, #00ffaa);
+        }
+        .branding-sigil::after { background: linear-gradient(-90deg, transparent, #00ffaa); }
+        .branding-main-title {
+            margin: 0; padding: 0; font-size: 42px; font-weight: 900;
+            letter-spacing: -1px; color: #ffffff; text-transform: uppercase; line-height: 1;
+            background: linear-gradient(180deg, #ffffff 60%, #5a697c 100%);
+            background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .branding-sub-bar { margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 15px; }
+        .bar-line { height: 2px; flex-grow: 1; max-width: 60px; background: #2d3542; position: relative; }
+        .bar-line::after { content: ""; position: absolute; top: -2px; right: 0; width: 6px; height: 6px; background: #ffaa00; border-radius: 50%; }
+        .bar-line-left::after { right: auto; left: 0; }
+        .branding-telemetry-tag { font-size: 11px; color: #8a99ad; font-weight: 700; text-transform: uppercase; letter-spacing: 4px; }
+        @keyframes terminalBootFade {
+            0% { opacity: 0; transform: translateY(15px); filter: blur(4px); }
+            100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+    </style>
+</head>
+<body>
+<div class="portal-landing-wrapper">
+    <div class="active-branding-header">
+        <div class="branding-sigil">OPLOG SYSTEM</div>
+        <h1 class="branding-main-title">OPLOG GATEWAY</h1>
+        <div class="branding-sub-bar">
+            <div class="bar-line bar-line-left"></div>
+            <div class="branding-telemetry-tag">DATA ENTRY PORTAL</div>
+            <div class="bar-line"></div>
+        </div>
+    </div>
+    <div class="glass-card" style="width:100%;max-width:420px;margin:0;box-shadow:0 20px 50px rgba(0,0,0,0.4);border-color:rgba(255,170,0,0.15);">
+        <h2 style="margin-top:5px;">User Authentication</h2>
+        <p style="color:var(--text-muted,#8a99ad);font-size:14px;margin-bottom:25px;font-weight:500;">Enter Login Details</p>
+        <form action="gateway.html">
+            <div class="form-group">
+                <label>Login ID</label>
+                <input type="text" value="admin_root" required style="letter-spacing:0.5px;">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" value="password123" required>
+            </div>
+            <button type="submit" style="width:100%;margin-top:15px;background:#ffaa00;color:#000;font-weight:800;border:none;padding:14px;">
+                INITIALIZE SESSION &rarr;
+            </button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

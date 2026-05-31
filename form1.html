@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Activity Log — Form A</title>
+    <style>
+        body,html{margin:0;padding:0;height:100vh;overflow:hidden;background:#0b0d10;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+        .viewport-wrapper{display:flex;align-items:center;justify-content:center;height:100vh;padding:30px;box-sizing:border-box;}
+        .large-panel-card{width:100%;max-width:1200px;background:rgba(18,22,28,0.85);border:2px solid #2d3542;border-top:6px solid #ffaa00;border-radius:14px;padding:40px;box-shadow:0 20px 50px rgba(0,0,0,0.6);box-sizing:border-box;backdrop-filter:blur(10px);overflow-y:auto;max-height:90vh;}
+        .inline-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:24px;}
+        input[type="date"],input[type="time"],select,.small-textbox{width:100%;padding:14px 16px;background:#171d25;border:2px solid #343e4c;border-radius:8px;color:#fff;font-family:inherit;font-size:15px;box-sizing:border-box;transition:border-color 0.2s ease;}
+        input:focus,select:focus,textarea:focus{outline:none;border-color:#ffaa00 !important;box-shadow:0 0 8px rgba(255,170,0,0.15);}
+        .small-textbox{font-weight:600;}
+        .large-textarea{width:100%;height:110px;padding:14px;background:#171d25;border:2px solid #343e4c;border-radius:8px;color:#fff;font-family:inherit;font-size:15px;resize:none;box-sizing:border-box;margin-bottom:22px;}
+        label{display:block;font-size:12px;text-transform:uppercase;font-weight:700;color:#8a99ad;margin-bottom:8px;letter-spacing:1px;}
+        .btn-secondary{background:transparent;border:2px solid #343e4c;color:#8a99ad;padding:10px 20px;font-size:13px;font-weight:600;border-radius:6px;cursor:pointer;transition:all 0.2s;}
+        .btn-secondary:hover{border-color:#526277;color:#fff;}
+        .btn-primary-nav{background:#222d3a;border:2px solid #3d4f66;color:#fff;padding:10px 20px;font-size:13px;font-weight:700;border-radius:6px;cursor:pointer;transition:all 0.2s;}
+        .btn-primary-nav:hover{background:#2d3d52;border-color:#ffaa00;}
+        .btn-submit-master{width:100%;padding:18px;background:#ffaa00;border:none;border-radius:8px;color:#0b0d10;font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:background 0.2s;}
+        .btn-submit-master:hover{background:#ffbb33;}
+        /* Dynamic dropdown section */
+        .extra-dropdowns-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:24px;}
+    </style>
+</head>
+<body>
+<div class="viewport-wrapper">
+    <div class="large-panel-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;border-bottom:2px solid #2d3542;padding-bottom:20px;">
+            <div>
+                <h2 style="margin:0;padding:0;border:none;color:#fff;font-size:24px;font-weight:800;">Activity Log</h2>
+                <p style="margin:5px 0 0;color:#8a99ad;font-size:14px;">Log a field activity or communication event.</p>
+            </div>
+            <div style="display:flex;gap:12px;">
+                <button type="button" class="btn-secondary" onclick="window.location.href='selection.html'">&larr; Cancel</button>
+                <button type="button" class="btn-primary-nav" onclick="window.location.href='dashboard.html'">View Records &rarr;</button>
+            </div>
+        </div>
+
+        <form id="preciseDataForm">
+            <!-- ROW 1: Date / Time / Reference (always fixed) -->
+            <div class="inline-grid-3">
+                <div><label>Log Date</label><input type="date" id="logDate" required></div>
+                <div><label>Log Time</label><input type="time" id="logTime" required></div>
+                <div><label>Contact / Subject</label><input type="text" id="smallText" class="small-textbox" placeholder="Contact name or subject" required></div>
+            </div>
+
+            <!-- Dynamic dropdowns injected here -->
+            <div id="dynamicDropdownsContainer"></div>
+
+            <!-- Fixed textareas -->
+            <div>
+                <label>Field Notes</label>
+                <textarea id="largeText1" class="large-textarea" placeholder="Primary Notes content..." required></textarea>
+            </div>
+            <div>
+                <label>Follow-up Actions</label>
+                <textarea id="largeText2" class="large-textarea" placeholder="Analysis Notes notes..."></textarea>
+            </div>
+
+            <button type="submit" class="btn-submit-master">Submit</button>
+        </form>
+    </div>
+</div>
+
+<script>
+// ── Load config and render dropdowns ─────────────────────────
+var DEFAULT_F1 = [
+    { key:'dropdown_1', label:'Category', options:['Type A','Type B','Type C'] },
+    { key:'dropdown_2', label:'Equipment', options:['Type A','Type B','Type C'] },
+    { key:'dropdown_3', label:'Blood Drive', options:['Type A','Transfer','Miscellaneous'] }
+];
+
+function getF1Config() {
+    try {
+        var cfg = JSON.parse(localStorage.getItem('form_dropdown_config'));
+        if (cfg && cfg.f1 && cfg.f1.length) return cfg.f1;
+    } catch(e) {}
+    return DEFAULT_F1;
+}
+
+function renderDropdowns() {
+    var fields = getF1Config();
+    var container = document.getElementById('dynamicDropdownsContainer');
+    // Chunk into rows of 3
+    var html = '';
+    for (var i = 0; i < fields.length; i += 3) {
+        var chunk = fields.slice(i, Math.min(i+3, fields.length));
+        html += '<div class="extra-dropdowns-grid">';
+        chunk.forEach(function(f) {
+            html += '<div><label>'+escHtml(f.label)+'</label><select id="dyn_'+f.key+'" required>';
+            f.options.forEach(function(o){ html += '<option value="'+escHtml(o)+'">'+escHtml(o)+'</option>'; });
+            html += '</select></div>';
+        });
+        // Pad empty cells
+        for (var p = chunk.length; p < 3; p++) html += '<div></div>';
+        html += '</div>';
+    }
+    container.innerHTML = html;
+}
+
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+renderDropdowns();
+
+// ── Submit ────────────────────────────────────────────────────
+var completeOrbat = JSON.parse(sessionStorage.getItem('temp_active_selection')) || {};
+var cachedM1 = completeOrbat.matrix1 || {};
+var cachedM2 = completeOrbat.matrix2 || {};
+
+document.getElementById('preciseDataForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var fields = getF1Config();
+    var dynamicPayload = {};
+    fields.forEach(function(f) {
+        var el = document.getElementById('dyn_'+f.key);
+        if (el) dynamicPayload[f.key] = el.value;
+    });
+
+    var record = {
+        id: "REC-" + Date.now().toString().slice(-6),
+        timestamp: new Date().toLocaleString(),
+        formType: "Form 1",
+        orbatContext: {
+            matrix1_node: cachedM1.tier5||cachedM1.tier4||cachedM1.tier3||cachedM1.tier2||cachedM1.tier1||"Unassigned",
+            matrix2_node: cachedM2.tier5||cachedM2.tier4||cachedM2.tier3||cachedM2.tier2||cachedM2.tier1||"Unassigned",
+            rawMatrix1: cachedM1, rawMatrix2: cachedM2
+        },
+        payload: Object.assign({
+            date: document.getElementById('logDate').value,
+            time: document.getElementById('logTime').value,
+            small_input: document.getElementById('smallText').value,
+            large_input_1: document.getElementById('largeText1').value,
+            large_input_2: document.getElementById('largeText2').value
+        }, dynamicPayload)
+    };
+
+    var recs = JSON.parse(localStorage.getItem('universal_event_collector')) || [];
+    recs.push(record);
+    localStorage.setItem('universal_event_collector', JSON.stringify(recs));
+    sessionStorage.removeItem('temp_active_selection');
+    window.location.href = 'dashboard.html';
+});
+</script>
+</body>
+</html>

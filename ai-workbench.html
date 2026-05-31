@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>AI Analysis Workbench</title>
+    <style>
+        :root {
+            --border: #2d3542;
+            --accent: #ffaa00;
+            --bg: #0b0d10;
+            --card: rgba(18, 22, 28, 0.85);
+            --muted: #8a99ad;
+            --success: #00ffaa;
+            --danger: #ff4a4a;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { background: var(--bg); color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px 20px; margin: 0; }
+ 
+        .container { max-width: 960px; margin: auto; }
+ 
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 30px; }
+        .header h2 { margin: 0; font-size: 22px; font-weight: 800; }
+        .header span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-top: 4px; }
+ 
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+ 
+        .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-box { background: #12161c; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center; }
+        .stat-box .val { font-size: 28px; font-weight: 800; color: var(--accent); }
+        .stat-box .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+ 
+        label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.75px; margin-bottom: 8px; }
+        textarea { width: 100%; background: #12161c; color: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-size: 13px; font-family: inherit; resize: vertical; line-height: 1.6; }
+        textarea:focus { outline: none; border-color: var(--accent); }
+ 
+        .btn-row { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+        .btn { padding: 12px 24px; border-radius: 6px; font-weight: 700; font-size: 13px; cursor: pointer; border: none; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.85; }
+        .btn-primary { background: var(--accent); color: #0b0d10; }
+        .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+        .btn-secondary:hover { border-color: var(--accent); color: #fff; }
+        .btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+        .btn-export { background: transparent; border: 1px solid var(--success); color: var(--success); }
+ 
+        /* Progress */
+        .progress-wrapper { display: none; margin-top: 20px; }
+        .progress-wrapper.visible { display: block; }
+        .progress-bar-bg { background: #12161c; border-radius: 6px; height: 8px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 10px; }
+        .progress-bar-fill { height: 100%; background: var(--accent); border-radius: 6px; transition: width 0.4s ease; width: 0%; }
+        .progress-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+        .chunk-log { margin-top: 10px; font-size: 11px; color: var(--muted); font-family: monospace; max-height: 80px; overflow-y: auto; }
+        .chunk-log div { padding: 2px 0; }
+        .chunk-log .done { color: var(--success); }
+        .chunk-log .running { color: var(--accent); }
+ 
+        /* Output */
+        #outputSection { display: none; }
+        #outputSection.visible { display: block; }
+        .output-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+        .output-header h3 { margin: 0; font-size: 16px; font-weight: 800; }
+        #reportOutput { background: #12161c; border: 1px solid var(--border); border-radius: 8px; padding: 20px; white-space: pre-wrap; font-size: 13px; line-height: 1.8; font-family: 'Courier New', monospace; color: #cfd8e3; max-height: 600px; overflow-y: auto; }
+ 
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge-green { background: rgba(0,255,170,0.1); color: var(--success); border: 1px solid var(--success); }
+        .badge-amber { background: rgba(255,170,0,0.1); color: var(--accent); border: 1px solid var(--accent); }
+        .badge-red { background: rgba(255,74,74,0.1); color: var(--danger); border: 1px solid var(--danger); }
+ 
+        .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+        .empty-state .icon { font-size: 40px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+<div class="container">
+ 
+    <div class="header">
+        <div>
+            <h2>AI Analysis Workbench</h2>
+            <span>Data Analysis Engine — Local LLM</span>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">&larr; Back to Records</button>
+        </div>
+    </div>
+ 
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow">
+        <div class="stat-box"><div class="val" id="statTotal">0</div><div class="lbl">Total Records</div></div>
+        <div class="stat-box"><div class="val" id="statF1">0</div><div class="lbl">Form A</div></div>
+        <div class="stat-box"><div class="val" id="statF2">0</div><div class="lbl">Form B</div></div>
+        <div class="stat-box"><div class="val" id="statF3">0</div><div class="lbl">Form C</div></div>
+    </div>
+ 
+    <!-- Config -->
+    <div class="card">
+        <label>Analysis Directive (Prompt)</label>
+        <textarea id="aiDirective" rows="14">You are a data analyst. You will be given data logs in JSON format.
+CRITICAL SYSTEM RULES — NON-NEGOTIABLE:
+- Do NOT open with any greeting, commentary, or observation about the dataset.
+- Do NOT use phrases like "what an intriguing", "fascinating", "treasure trove", or any editorial language. Ever.
+- Begin your response IMMEDIATELY with "1. FIELD OFFICE BREAKDOWN" and nothing before it.
+- If you violate any formatting rule, your response is considered invalid.
+STRICT RULES:
+- Every claim must cite its record ID(s). No exceptions.
+- Track each entity group separately. Never attribute one group's data to another.
+- Identify cells by: frequency (Form A), location zone (Form B), or sensor ID (Form C).
+- If something appears in only one uncorroborated record, mark it (UNCONFIRMED).
+- No filler, no editorial tone. Clinical and precise only.
+ 
+OUTPUT:
+1. FIELD OFFICE BREAKDOWN — one section per identified group. Include: frequency/ID, AO, Object contacts, TTP changes, current status.
+2. INCIDENT TIMELINE — chronological bullets. Format: [ID] [datetime] — significance. Flag any multi-group activity within the same 6-hour window.
+3. ANOMALY TABLE — | ID | Anomaly | Confidence | Linked Records |
+4. KEY CONNECTIONS — numbered. Must name records, evidence chain, and practical implication.
+5. OPERATIONAL RECOMMENDATIONS — ranked by urgency. Each must cite the records that justify it.</textarea>
+ 
+        <div style="display:flex; gap:16px; margin-top:16px; align-items:center; flex-wrap:wrap;">
+            <div>
+                <label style="margin-bottom:4px;">Chunk Size</label>
+                <select id="chunkSize" style="background:#12161c; color:#fff; border:1px solid var(--border); border-radius:6px; padding:8px 12px; font-size:13px;">
+                    <option value="5">5 records per chunk</option>
+                    <option value="7" selected>7 records per chunk</option>
+                    <option value="10">10 records per chunk</option>
+                </select>
+            </div>
+            <div>
+                <label style="margin-bottom:4px;">Model</label>
+                <select id="modelSelect" style="background:#12161c; color:#fff; border:1px solid var(--border); border-radius:6px; padding:8px 12px; font-size:13px;">
+                    <option value="phi3:medium">phi3</option>
+                    <option value="llama3">llama3</option>
+                    <option value="mistral">mistral</option>
+                </select>
+            </div>
+        </div>
+ 
+        <div class="btn-row">
+            <button class="btn btn-primary" onclick="runAnalysis()">&#9654; Execute Analysis</button>
+            <button class="btn btn-secondary" onclick="loadStats()">&#8635; Refresh Stats</button>
+            <button class="btn btn-danger" onclick="clearReport()">&#10005; Clear Report</button>
+        </div>
+ 
+        <!-- Progress -->
+        <div class="progress-wrapper" id="progressWrapper">
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+            <div class="progress-label" id="progressLabel">Initialising...</div>
+            <div class="chunk-log" id="chunkLog"></div>
+        </div>
+    </div>
+ 
+    <!-- Output -->
+    <div id="outputSection">
+        <div class="card">
+            <div class="output-header">
+                <h3>Analysis Report</h3>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <span class="badge badge-green" id="recordsBadge"></span>
+                    <span class="badge badge-amber" id="chunksBadge"></span>
+                    <button class="btn btn-export" onclick="exportReport()" style="padding:6px 14px; font-size:12px;">Export .txt</button>
+                </div>
+            </div>
+            <div id="reportOutput"></div>
+        </div>
+    </div>
+ 
+</div>
+ 
+<script>
+    // ── Helpers ───────────────────────────────────────────────
+    function detectFormType(rec) {
+        var p = rec.payload || {};
+        if (p.paths !== undefined) return "Form 3";
+        if (p.timeFrom !== undefined && p.profile !== undefined) return "Form 3T1";
+        if (p.manifestDate !== undefined || p.locationZone !== undefined) return "Form 2";
+        if (p.small_input !== undefined || p.dropdown_1 !== undefined) return "Form 1";
+        return rec.formType || "Unknown";
+    }
+ 
+    function loadStats() {
+        var records = JSON.parse(localStorage.getItem('universal_event_collector')) || [];
+        document.getElementById('statTotal').textContent = records.length;
+        document.getElementById('statF1').textContent = records.filter(r => detectFormType(r) === "Form 1").length;
+        document.getElementById('statF2').textContent = records.filter(r => detectFormType(r) === "Form 2").length;
+        document.getElementById('statF3').textContent = records.filter(r => ["Form 3","Form 3T1"].includes(detectFormType(r))).length;
+ 
+        if (records.length === 0) {
+            document.getElementById('statsRow').innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">📭</div><div>No records in records. Submit forms or import a JSON archive first.</div></div>';
+        }
+    }
+ 
+    function logChunk(msg, state) {
+        var log = document.getElementById('chunkLog');
+        var div = document.createElement('div');
+        div.className = state || '';
+        div.textContent = msg;
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+    }
+ 
+    function setProgress(pct, label) {
+        document.getElementById('progressFill').style.width = pct + '%';
+        document.getElementById('progressLabel').textContent = label;
+    }
+ 
+    // ── Core chunk caller ─────────────────────────────────────
+    async function callOllama(prompt, model) {
+        const response = await fetch('http://localhost:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: model, prompt: prompt, stream: false })
+        });
+        const data = await response.json();
+        console.log("Ollama raw response:", data);
+return data.response || data.message?.content || data.choices?.[0]?.text || "";
+    }
+ 
+    // ── Main analysis pipeline ────────────────────────────────
+    async function runAnalysis() {
+        var records = JSON.parse(localStorage.getItem('universal_event_collector')) || [];
+        if (records.length === 0) return alert("No records found in records. Submit some forms first.");
+ 
+        var directive = document.getElementById('aiDirective').value;
+        var chunkSize = parseInt(document.getElementById('chunkSize').value);
+        var model = document.getElementById('modelSelect').value;
+ 
+        // UI setup
+        document.getElementById('progressWrapper').classList.add('visible');
+        document.getElementById('outputSection').classList.remove('visible');
+        document.getElementById('chunkLog').innerHTML = '';
+        document.getElementById('reportOutput').textContent = '';
+        setProgress(0, 'Loading records from records...');
+ 
+        // Split into chunks
+        var chunks = [];
+        for (var i = 0; i < records.length; i += chunkSize) {
+            chunks.push(records.slice(i, i + chunkSize));
+        }
+ 
+        var partialSummaries = [];
+        var totalSteps = chunks.length + 1; // chunks + final synthesis
+ 
+        // ── Step 1: Analyse each chunk ────────────────────────
+        for (var c = 0; c < chunks.length; c++) {
+            var chunkNum = c + 1;
+            var ids = chunks[c].map(r => r.id).join(', ');
+            logChunk('⟳ Chunk ' + chunkNum + '/' + chunks.length + ' — Records: ' + ids, 'running');
+            setProgress(Math.round((c / totalSteps) * 100), 'Analysing chunk ' + chunkNum + ' of ' + chunks.length + '...');
+ 
+            var chunkPrompt = `${directive}
+ 
+IMPORTANT: This is CHUNK ${chunkNum} of ${chunks.length} from a larger dataset. 
+Analyse only the records below. Be thorough but know a final synthesis pass will follow.
+Do NOT write a conclusion yet — just analyse these records strictly.
+ 
+RECORDS:
+${JSON.stringify(chunks[c], null, 2)}`;
+ 
+            try {
+                var partial = await callOllama(chunkPrompt, model);
+                partialSummaries.push('=== CHUNK ' + chunkNum + ' (Records: ' + ids + ') ===\n' + partial);
+                logChunk('✓ Chunk ' + chunkNum + ' complete', 'done');
+            } catch (err) {
+                logChunk('✗ Chunk ' + chunkNum + ' failed: ' + err.message, '');
+                partialSummaries.push('=== CHUNK ' + chunkNum + ' — FAILED ===');
+            }
+        }
+ 
+        // ── Step 2: Final synthesis ───────────────────────────
+        logChunk('⟳ Running final synthesis across all chunks...', 'running');
+        setProgress(Math.round((chunks.length / totalSteps) * 100), 'Synthesising full report...');
+ 
+        var synthesisPrompt = `You are a field operations analyst producing a FINAL consolidated report.
+ 
+You have been given partial analyses from ${chunks.length} chunks of a larger data log dataset (${records.length} total records).
+ 
+Your job: synthesise all partial analyses into ONE coherent final report.
+${partialSummaries.join('\n\n')}`;
+ 
+        try {
+            var finalReport = await callOllama(synthesisPrompt, model);
+            logChunk('✓ Synthesis complete', 'done');
+            setProgress(100, 'Analysis complete.');
+ 
+            // Display
+            document.getElementById('reportOutput').textContent = finalReport;
+            document.getElementById('outputSection').classList.add('visible');
+            document.getElementById('recordsBadge').textContent = records.length + ' records';
+            document.getElementById('chunksBadge').textContent = chunks.length + ' chunks';
+ 
+            // Store report
+            localStorage.setItem('last_ai_report', JSON.stringify({
+                timestamp: new Date().toISOString(),
+                recordCount: records.length,
+                chunkCount: chunks.length,
+                model: model,
+                report: finalReport
+            }));
+ 
+        } catch (err) {
+            logChunk('✗ Synthesis failed: ' + err.message, '');
+            setProgress(100, 'Synthesis failed. See log.');
+        }
+    }
+ 
+    // ── Export ────────────────────────────────────────────────
+    function exportReport() {
+        var text = document.getElementById('reportOutput').textContent;
+        if (!text) return alert("No report to export.");
+        var blob = new Blob([text], { type: 'text/plain' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'OpLog_Report_' + new Date().toISOString().substring(0,10) + '.txt';
+        a.click();
+    }
+ 
+    function clearReport() {
+        document.getElementById('reportOutput').textContent = '';
+        document.getElementById('outputSection').classList.remove('visible');
+        document.getElementById('progressWrapper').classList.remove('visible');
+        document.getElementById('chunkLog').innerHTML = '';
+        setProgress(0, '');
+    }
+ 
+    // ── Boot ──────────────────────────────────────────────────
+    loadStats();
+</script>
+</body>
+</html>
+ 

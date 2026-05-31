@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Entry Type Selection</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .grid-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-top: 40px; }
+        .option-card { background: var(--panel-item); border: 3px solid var(--border-bold); padding: 35px 20px; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.2s ease; }
+        .option-card h3 { color: var(--text-primary); border-bottom: 2px solid var(--border-bold); padding-bottom: 10px; margin-bottom: 15px; }
+        .option-card p { font-size: 14px; color: var(--text-muted); margin: 0 0 20px 0; line-height: 1.5; }
+        .option-card:hover { background: var(--panel-dark); border-color: var(--border-active); transform: translateY(-5px); box-shadow: 0 12px 30px rgba(0,0,0,0.4); }
+    </style>
+</head>
+<body>
+
+<div class="center-container">
+    <div class="glass-card" style="width: 100%; max-width: 900px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h2 style="border:none; padding:0; margin:0;">Entry Type Selection</h2>
+                <p style="color: var(--text-muted); font-size: 15px; margin: 10px 0 0 0;">Select your entry type.</p>
+            </div>
+            <button onclick="window.location.href='entity-selector.html'" style="background: transparent; border-color: var(--border-bold); color: var(--text-muted); padding: 10px 20px;">&larr; BACK</button>
+        </div>
+
+        <div class="grid-options">
+            <div class="option-card" onclick="alert('Form 1 Processing Engine Offline')">
+                <h3>Form A</h3>
+                <p>(Type A)</p>
+                <button onclick="window.location.href='form1.html'"style="width: 100%; font-size: 13px; padding: 10px;">SELECT</button>
+            </div>
+            <div class="option-card" onclick="alert('Form 2 Processing Engine Offline')">
+                <h3>Form B</h3>
+                <br><br>
+                <button onclick="window.location.href='form2.html'" style="width: 100%; font-size: 13px; padding: 10px;">SELECT</button>
+            </div>
+            <div class="option-card" onclick="alert('Form 3 Processing Engine Offline')">
+                <h3>Form C</h3>
+                <p>(Type C)</p>
+                <button onclick="window.location.href='form3.html'" style="width: 100%; font-size: 13px; padding: 10px;">SELECT</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
