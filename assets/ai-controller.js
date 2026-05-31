@@ -4,12 +4,7 @@
 export async function fetchAIDeduction(record, existingNotes) {
     const model = "phi3:medium";    
  
-    const prompt = `You are a military signals intelligence analyst.
-Analyse this single operational log entry and provide a concise tactical deduction.
-Rules:
-- No greeting or preamble. Start immediately with the deduction.
-- Cite the record ID in your response.
-- Maximum 4 sentences.  
+    const prompt = `You are a DATA analyst, keep track of all the data and what is occuring at what location and deduce conclusions
 - Clinical tone only.
  
 Record ID: ${record.id}
