@@ -1,4 +1,4 @@
-# Field Ops Dashboard
+# NGO Field Ops Dashboard
 
 A locally-hosted web dashboard for managing field operations data across distributed NGO teams.
 
